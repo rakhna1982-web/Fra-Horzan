@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "DriverProfile": {
+      "title": "DriverProfile",
+      "description": "Authenticated driver profile storing Horizon Festival progression, credits, selected car, and lifetime driving records.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the driver." },
+        "displayName": { "type": "string", "description": "Driver callsign or Google display name (1-50 chars)." },
+        "credits": { "type": "integer", "description": "In-game Horizon Credits (CR) earned from stunts and events." },
+        "xp": { "type": "integer", "description": "Total driver experience points." },
+        "level": { "type": "integer", "description": "Driver festival level (1-999)." },
+        "selectedCarId": { "type": "string", "description": "ID of the currently active car in the garage." },
+        "totalDriftScore": { "type": "integer", "description": "Cumulative drift score across all sessions." },
+        "topSpeedKmh": { "type": "integer", "description": "Highest speed recorded in km/h." },
+        "boardsSmashed": { "type": "integer", "description": "Number of Horizon Bonus Boards smashed (0-50)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp when profile was created (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp when profile was last updated (FieldValue.serverTimestamp())." }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "credits",
+        "xp",
+        "level",
+        "selectedCarId",
+        "totalDriftScore",
+        "topSpeedKmh",
+        "boardsSmashed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OwnedCar": {
+      "title": "OwnedCar",
+      "description": "A car owned by the driver with custom festival paint and upgrade levels.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "carId": { "type": "string", "description": "Catalog car identifier matching document ID." },
+        "paintHex": { "type": "string", "description": "Hex color code for body paint (#RRGGBB)." },
+        "engineLevel": { "type": "integer", "description": "Engine upgrade tier (1-5)." },
+        "tiresLevel": { "type": "integer", "description": "Tires & suspension upgrade tier (1-5)." },
+        "nitroLevel": { "type": "integer", "description": "Nitrous boost upgrade tier (1-5)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of purchase (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of last modification (FieldValue.serverTimestamp())." }
+      },
+      "required": [
+        "userId",
+        "carId",
+        "paintHex",
+        "engineLevel",
+        "tiresLevel",
+        "nitroLevel",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ZoneRecord": {
+      "title": "ZoneRecord",
+      "description": "Personal best record for a Speed Trap, Drift Zone, or Horizon Circuit event.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "zoneId": { "type": "string", "description": "Event zone identifier matching document ID." },
+        "zoneType": {
+          "type": "string",
+          "enum": ["SPEED_TRAP", "DRIFT_ZONE", "CIRCUIT"],
+          "description": "Category of the Horizon event zone."
+        },
+        "bestValue": { "type": "integer", "description": "Best speed (km/h), drift points, or fastest lap time (ms)." },
+        "stars": { "type": "integer", "description": "Star rating achieved (0-3)." },
+        "carId": { "type": "string", "description": "Car ID used to set this personal best." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of first record (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp of latest personal best (FieldValue.serverTimestamp())." }
+      },
+      "required": [
+        "userId",
+        "zoneId",
+        "zoneType",
+        "bestValue",
+        "stars",
+        "carId",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/DriverProfile" },
+      "description": "Per-user driver profile and progression stats."
+    },
+    "/users/{userId}/garage/{carId}": {
+      "schema": { "$ref": "#/entities/OwnedCar" },
+      "description": "Cars owned and customized by the driver."
+    },
+    "/users/{userId}/records/{zoneId}": {
+      "schema": { "$ref": "#/entities/ZoneRecord" },
+      "description": "Personal best event records for Speed Traps, Drift Zones, and Circuits."
+    }
+  }
+}

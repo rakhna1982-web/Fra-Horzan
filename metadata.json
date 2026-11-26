@@ -1,0 +1,6 @@
+{
+  "name": "Apex Horizon",
+  "description": "Open-world festival racing game with drift zones, speed traps, custom car garage, and cloud profile sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

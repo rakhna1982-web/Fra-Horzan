@@ -1,0 +1,206 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidDriverProfile(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.displayName is string &&
+             data.displayName.size() >= 1 &&
+             data.displayName.size() <= 50 &&
+             data.credits is int &&
+             data.credits >= 0 &&
+             data.credits <= 100000000 &&
+             data.xp is int &&
+             data.xp >= 0 &&
+             data.xp <= 100000000 &&
+             data.level is int &&
+             data.level >= 1 &&
+             data.level <= 999 &&
+             data.selectedCarId is string &&
+             isValidId(data.selectedCarId) &&
+             data.totalDriftScore is int &&
+             data.totalDriftScore >= 0 &&
+             data.totalDriftScore <= 1000000000 &&
+             data.topSpeedKmh is int &&
+             data.topSpeedKmh >= 0 &&
+             data.topSpeedKmh <= 600 &&
+             data.boardsSmashed is int &&
+             data.boardsSmashed >= 0 &&
+             data.boardsSmashed <= 50 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidOwnedCar(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.carId is string &&
+             isValidId(data.carId) &&
+             data.paintHex is string &&
+             data.paintHex.size() == 7 &&
+             data.paintHex.matches('^#[0-9A-Fa-f]{6}$') &&
+             data.engineLevel is int &&
+             data.engineLevel >= 1 &&
+             data.engineLevel <= 5 &&
+             data.tiresLevel is int &&
+             data.tiresLevel >= 1 &&
+             data.tiresLevel <= 5 &&
+             data.nitroLevel is int &&
+             data.nitroLevel >= 1 &&
+             data.nitroLevel <= 5 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidZoneRecord(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.zoneId is string &&
+             isValidId(data.zoneId) &&
+             data.zoneType is string &&
+             data.zoneType in ['SPEED_TRAP', 'DRIFT_ZONE', 'CIRCUIT'] &&
+             data.bestValue is int &&
+             data.bestValue >= 0 &&
+             data.bestValue <= 100000000 &&
+             data.stars is int &&
+             data.stars >= 0 &&
+             data.stars <= 3 &&
+             data.carId is string &&
+             isValidId(data.carId) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'credits', 'xp', 'level',
+                         'selectedCarId', 'totalDriftScore', 'topSpeedKmh',
+                         'boardsSmashed', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'credits', 'xp', 'level',
+                         'selectedCarId', 'totalDriftScore', 'topSpeedKmh',
+                         'boardsSmashed', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidDriverProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidDriverProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'credits', 'xp', 'level',
+                         'selectedCarId', 'totalDriftScore', 'topSpeedKmh',
+                         'boardsSmashed', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /garage/{carId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(carId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(carId) &&
+                         request.auth.uid == userId &&
+                         incoming().carId == carId &&
+                         incoming().keys().hasAll([
+                           'userId', 'carId', 'paintHex',
+                           'engineLevel', 'tiresLevel', 'nitroLevel',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'carId', 'paintHex',
+                           'engineLevel', 'tiresLevel', 'nitroLevel',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidOwnedCar(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(carId) &&
+                         request.auth.uid == userId &&
+                         isValidOwnedCar(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().carId == existing().carId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'paintHex', 'engineLevel', 'tiresLevel', 'nitroLevel', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(carId) && request.auth.uid == userId;
+      }
+
+      match /records/{zoneId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(zoneId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(zoneId) &&
+                         request.auth.uid == userId &&
+                         incoming().zoneId == zoneId &&
+                         incoming().keys().hasAll([
+                           'userId', 'zoneId', 'zoneType', 'bestValue',
+                           'stars', 'carId', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'zoneId', 'zoneType', 'bestValue',
+                           'stars', 'carId', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidZoneRecord(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(zoneId) &&
+                         request.auth.uid == userId &&
+                         isValidZoneRecord(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().zoneId == existing().zoneId &&
+                         incoming().zoneType == existing().zoneType &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'bestValue', 'stars', 'carId', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(zoneId) && request.auth.uid == userId;
+      }
+    }
+  }
+}

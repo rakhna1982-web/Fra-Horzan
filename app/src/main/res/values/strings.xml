@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Apex Horizon</string>
+    <string name="festival_subtitle">OPEN-WORLD FESTIVAL RACING</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_in_tagline">Sync your garage, custom builds, and festival records across devices.</string>
+    <string name="nav_hub">Festival</string>
+    <string name="nav_garage">Garage</string>
+    <string name="nav_events">Events</string>
+    <string name="nav_driver">Driver</string>
+    <string name="action_free_roam">Free Roam Drive</string>
+    <string name="action_circuit_trial">Horizon Circuit</string>
+    <string name="action_sign_out">Sign Out</string>
+</resources>
